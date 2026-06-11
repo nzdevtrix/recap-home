@@ -1,7 +1,9 @@
 {
-  "name": "database",
+  "name": "@recap/database",
   "version": "1.0.0",
   "private": true,
+  "main": "src/client.ts",
+  "types": "src/client.ts",
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
