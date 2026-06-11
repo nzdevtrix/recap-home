@@ -31,6 +31,23 @@ export default function RiderRegisterPage() {
     email: ''
   })
 
+  const [uploading, setUploading] = useState<string | null>(null)
+
+  const uploadFile = async (field: string, file: File) => {
+    setUploading(field)
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/upload`, { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setForm({ ...form, [field]: data.url })
+    } catch (err: any) {
+      setError(err.message)
+    }
+    setUploading(null)
+  }
+
   const update = (field: string, value: string) => setForm({ ...form, [field]: value })
 
   const nextStep = () => { setError(''); setStep(s => Math.min(s + 1, steps.length - 1)) }
@@ -222,25 +239,33 @@ export default function RiderRegisterPage() {
       )
       case 2: return (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Carica le scansioni dei seguenti documenti (inserisci URL delle immagini)</p>
+          <p className="text-sm text-muted-foreground">Carica le scansioni dei seguenti documenti</p>
           <div>
             <Label>Fronte Carta d'Identità *</Label>
-            <Input value={form.identityFrontUrl} onChange={e => update('identityFrontUrl', e.target.value)} placeholder="URL immagine fronte CI" />
+            <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('identityFrontUrl', e.target.files[0])} />
+            {uploading === 'identityFrontUrl' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+            {form.identityFrontUrl && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
           </div>
           <div>
             <Label>Retro Carta d'Identità *</Label>
-            <Input value={form.identityBackUrl} onChange={e => update('identityBackUrl', e.target.value)} placeholder="URL immagine retro CI" />
+            <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('identityBackUrl', e.target.files[0])} />
+            {uploading === 'identityBackUrl' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+            {form.identityBackUrl && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
           </div>
           {!isItalian && (
             <div>
               <Label>Permesso di Soggiorno *</Label>
-              <Input value={form.permessoDiSoggiornoUrl} onChange={e => update('permessoDiSoggiornoUrl', e.target.value)} placeholder="URL Permesso di Soggiorno (fronte/retro)" />
+              <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('permessoDiSoggiornoUrl', e.target.files[0])} />
+              {uploading === 'permessoDiSoggiornoUrl' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+              {form.permessoDiSoggiornoUrl && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
               <p className="text-xs text-muted-foreground mt-1">Obbligatorio per cittadini non italiani</p>
             </div>
           )}
           <div>
             <Label>Tessera Sanitaria *</Label>
-            <Input value={form.tesseraSanitariaUrl} onChange={e => update('tesseraSanitariaUrl', e.target.value)} placeholder="URL Tessera Sanitaria" />
+            <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('tesseraSanitariaUrl', e.target.files[0])} />
+            {uploading === 'tesseraSanitariaUrl' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+            {form.tesseraSanitariaUrl && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
           </div>
         </div>
       )
@@ -264,8 +289,10 @@ export default function RiderRegisterPage() {
             <Input value={form.bankName} onChange={e => update('bankName', e.target.value)} placeholder="Nome della banca" />
           </div>
           <div>
-            <Label>Documento di Prova (URL) *</Label>
-            <Input value={form.bankProofDoc} onChange={e => update('bankProofDoc', e.target.value)} placeholder="URL intestazione conto" />
+            <Label>Documento di Prova *</Label>
+            <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('bankProofDoc', e.target.files[0])} />
+            {uploading === 'bankProofDoc' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+            {form.bankProofDoc && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
             <p className="text-xs text-muted-foreground mt-1">Scansione o foto dell'intestazione del conto corrente</p>
           </div>
         </div>

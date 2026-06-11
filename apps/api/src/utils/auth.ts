@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@recap/database';
-import { UserRole } from '@prisma/client';
 
 // JWT Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'recap-home-secret-key-change-in-production';
@@ -15,7 +14,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 export interface JwtPayload {
   userId: string;
   email: string;
-  role: UserRole;
+  role: string;
   name?: string;
 }
 
@@ -26,7 +25,7 @@ export interface TokenResponse {
     id: string;
     email: string;
     name: string | null;
-    role: UserRole;
+    role: string;
     avatar?: string | null;
   };
 }
@@ -68,7 +67,7 @@ export async function createUser(
   email: string,
   password: string,
   name: string,
-  role: UserRole = UserRole.PRIVATE,
+  role: string = 'PRIVATE',
   googleId?: string,
   googleImage?: string
 ): Promise<{ user: any; accessToken: string; refreshToken: string }> {
@@ -225,7 +224,7 @@ export async function loginWithGoogle(
       data: {
         email,
         name,
-        role: UserRole.PRIVATE,
+        role: 'PRIVATE',
         googleId,
         googleImage: image,
         emailVerified: true,
@@ -360,7 +359,7 @@ export async function getUserById(userId: string) {
 }
 
 // Validate user role
-export function validateRole(userRole: UserRole, requiredRoles: UserRole[]): boolean {
+export function validateRole(userRole: string, requiredRoles: string[]): boolean {
   return requiredRoles.includes(userRole);
 }
 

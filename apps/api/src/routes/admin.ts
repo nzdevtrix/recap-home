@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '@recap/database';
-import { UserRole, RiderApprovalStatus, BusinessStatus } from '@prisma/client';
+
 import { requireAdmin, getCurrentUser } from '../middleware/auth';
 import { hashPassword } from '../utils/auth';
 import { io } from '../index';
@@ -33,16 +33,16 @@ router.post('/personnel', requireAdmin, async (req, res) => {
     
     // Define internal roles that can be added directly
     const internalRoles = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR,
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR',
     ];
     
     // Check if role is valid
-    const userRole = role as UserRole;
-    if (!Object.values(UserRole).includes(userRole)) {
+    const userRole = role as string;
+    if (!['SYSTEM_OPERATOR', 'DEVELOPER', 'CUSTOMER_CARE', 'REGIONAL_OPERATOR', 'LOCAL_RIDER_MONITOR', 'RIDER', 'BUSINESS', 'PRIVATE'].includes(userRole)) {
       return res.status(400).json({ 
         error: 'Invalid role' 
       });
@@ -70,12 +70,12 @@ router.post('/personnel', requireAdmin, async (req, res) => {
       });
       
       // If creating a RIDER, also create rider profile and rider record
-      if (userRole === UserRole.RIDER) {
+      if (userRole === 'RIDER') {
         await tx.riderProfile.create({
           data: {
             userId: user.id,
             regionId: regionId || defaultRegion?.id,
-            approvalStatus: RiderApprovalStatus.APPROVED, // Auto-approved for direct add
+            approvalStatus: 'APPROVED', // Auto-approved for direct add
             backgroundCheckStatus: 'COMPLETED',
             isAvailable: false,
             approvedById: admin.id,
@@ -93,14 +93,14 @@ router.post('/personnel', requireAdmin, async (req, res) => {
       }
       
       // If creating a BUSINESS, also create business profile and business record
-      if (userRole === UserRole.BUSINESS) {
+      if (userRole === 'BUSINESS') {
         await tx.businessProfile.create({
           data: {
             userId: user.id,
             name: name,
             address: '',
             regionId: regionId || defaultRegion?.id,
-            status: BusinessStatus.ACTIVE,
+            status: 'ACTIVE',
             approvedAt: new Date(),
             isVerified: true,
           },
@@ -240,7 +240,7 @@ router.get('/system-status', requireAdmin, async (req, res) => {
       prisma.rider.count({ where: { isAvailable: true } }),
       prisma.order.count(),
       prisma.order.count({ where: { status: { not: ['DELIVERED', 'CANCELLED'] } } }),
-      prisma.riderProfile.count({ where: { approvalStatus: RiderApprovalStatus.PENDING } }),
+      prisma.riderProfile.count({ where: { approvalStatus: 'PENDING' } }),
       prisma.region.count({ where: { isActive: true } }),
     ]);
     
@@ -285,17 +285,17 @@ router.get('/stats', requireAdmin, async (req, res) => {
       where: { isVerified: true } 
     });
     const pendingBusinesses = await prisma.businessProfile.count({ 
-      where: { status: BusinessStatus.PENDING } 
+      where: { status: 'PENDING' } 
     });
     
     // Rider stats
     const totalRiders = await prisma.rider.count();
     const availableRiders = await prisma.rider.count({ where: { isAvailable: true } });
     const pendingRiders = await prisma.riderProfile.count({ 
-      where: { approvalStatus: RiderApprovalStatus.PENDING } 
+      where: { approvalStatus: 'PENDING' } 
     });
     const approvedRiders = await prisma.riderProfile.count({ 
-      where: { approvalStatus: RiderApprovalStatus.APPROVED } 
+      where: { approvalStatus: 'APPROVED' } 
     });
     
     // Order stats

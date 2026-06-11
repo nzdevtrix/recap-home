@@ -1,7 +1,7 @@
 import express from 'express';
-import { UserRole, RiderApprovalStatus, BusinessStatus, BusinessLegalType, BusinessCategory } from '@prisma/client';
 import { prisma } from '@recap/database';
 import { hashPassword } from '../utils/auth';
+import { generateOtp, storeOtp, verifyOtp, sendOtpEmail } from '../utils/email';
 
 const router = express.Router();
 
@@ -67,7 +67,7 @@ router.post('/business', async (req, res) => {
         password: hashedPassword,
         username: username || email.split('@')[0],
         name: legalName,
-        role: UserRole.BUSINESS,
+        role: "BUSINESS",
         phone,
       }
     });
@@ -77,7 +77,7 @@ router.post('/business', async (req, res) => {
       data: {
         userId: user.id,
         legalName,
-        legalType: legalType as BusinessLegalType || BusinessLegalType.INDIVIDUALE,
+        legalType: legalType || "INDIVIDUALE",
         ownerFullName,
         ownerDob: new Date(ownerDob),
         ownerPlaceOfBirth,
@@ -85,12 +85,12 @@ router.post('/business', async (req, res) => {
         ownerResidence,
         pecAddress: pecAddress || null,
         vatId,
-        businessCategory: businessCategory as BusinessCategory || BusinessCategory.ALTRO,
+        businessCategory: businessCategory || "ALTRO",
         businessAddress,
         city: city || null,
         postalCode: postalCode || null,
         phone: phone || null,
-        status: BusinessStatus.PENDING_BANKING,
+        status: "PENDING_BANKING",
         regionId: region.id,
       }
     });
@@ -159,7 +159,7 @@ router.post('/private', async (req, res) => {
         firstName,
         lastName: lastName || null,
         name: `${firstName} ${lastName || ''}`.trim(),
-        role: UserRole.PRIVATE,
+        role: "PRIVATE",
       }
     });
 
@@ -228,7 +228,7 @@ router.post('/rider', async (req, res) => {
       data: {
         email,
         name: fullName,
-        role: UserRole.RIDER,
+        role: "RIDER",
         isActive: false, // Inactive until approved
       }
     });
@@ -248,7 +248,7 @@ router.post('/rider', async (req, res) => {
         hasBusiness: hasBusiness === true,
         vatId: vatId || null,
         hasPermessoDiSoggiorno: !isItalian,
-        approvalStatus: RiderApprovalStatus.PENDING,
+        approvalStatus: "PENDING",
         regionId: region.id,
       }
     });
@@ -289,7 +289,7 @@ router.post('/rider', async (req, res) => {
   }
 });
 
-// POST /register/rider/check-status - Check application status (OTP based)
+// POST /register/rider/check-status - Request OTP to check application status
 router.post('/rider/check-status', async (req, res) => {
   try {
     const { email } = req.body;
@@ -299,24 +299,55 @@ router.post('/rider/check-status', async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { riderProfile: true }
+      include: { rider: true }
     });
 
-    if (!user || user.role !== UserRole.RIDER) {
+    if (!user || user.role !== "RIDER") {
       return res.status(404).json({ error: 'No rider application found for this email' });
     }
 
-    // In production, send OTP to email. For now, return status directly.
-    res.json({
-      status: user.riderProfile?.approvalStatus || 'PENDING',
-      message: user.riderProfile?.approvalStatus === RiderApprovalStatus.APPROVED
-        ? 'Your application has been approved! Check your email for login instructions.'
-        : user.riderProfile?.approvalStatus === RiderApprovalStatus.REJECTED
-        ? `Your application was rejected. Reason: ${user.riderProfile?.rejectionReason || 'No reason provided'}`
-        : 'Your application is still under review. You will be notified via email once processed.'
-    });
+    const otp = generateOtp();
+    storeOtp(email, otp);
+    await sendOtpEmail(email, otp);
+
+    res.json({ message: 'OTP sent to your email', expiresIn: 600 });
   } catch (error: any) {
     console.error('Check rider status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /register/rider/verify-otp - Verify OTP and return application status
+router.post('/rider/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    if (!verifyOtp(email, otp)) {
+      return res.status(401).json({ error: 'Invalid or expired OTP' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { rider: true }
+    });
+
+    if (!user || user.role !== "RIDER") {
+      return res.status(404).json({ error: 'No rider application found for this email' });
+    }
+
+    res.json({
+      status: user.rider?.approvalStatus || 'PENDING',
+      message: user.rider?.approvalStatus === "APPROVED"
+        ? 'Your application has been approved!'
+        : user.rider?.approvalStatus === "REJECTED"
+        ? `Your application was rejected. Reason: ${user.rider?.rejectionReason || 'No reason provided'}`
+        : 'Your application is still under review.'
+    });
+  } catch (error: any) {
+    console.error('Verify OTP error:', error);
     res.status(500).json({ error: error.message });
   }
 });

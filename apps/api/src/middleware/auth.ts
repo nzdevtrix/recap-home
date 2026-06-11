@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, getUserFromToken, JwtPayload } from '../utils/auth';
-import { UserRole } from '@prisma/client';
 
 // Extract token from request
 export function extractToken(req: Request): string | null {
@@ -74,7 +73,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 }
 
 // Role-based authorization middleware
-export function authorize(requiredRoles: UserRole[]) {
+export function authorize(requiredRoles: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // First authenticate
@@ -137,45 +136,45 @@ export function authorize(requiredRoles: UserRole[]) {
 
 // Specific role middleware generators
 export const requireAdmin = authorize([
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.DEVELOPER,
-  UserRole.REGIONAL_OPERATOR
+  'SYSTEM_OPERATOR',
+  'DEVELOPER',
+  'REGIONAL_OPERATOR'
 ]);
 
 export const requireCustomerCare = authorize([
-  UserRole.CUSTOMER_CARE,
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.DEVELOPER
+  'CUSTOMER_CARE',
+  'SYSTEM_OPERATOR',
+  'DEVELOPER'
 ]);
 
 export const requireBusiness = authorize([
-  UserRole.BUSINESS,
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.DEVELOPER
+  'BUSINESS',
+  'SYSTEM_OPERATOR',
+  'DEVELOPER'
 ]);
 
 export const requireRider = authorize([
-  UserRole.RIDER,
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.DEVELOPER,
-  UserRole.LOCAL_RIDER_MONITOR
+  'RIDER',
+  'SYSTEM_OPERATOR',
+  'DEVELOPER',
+  'LOCAL_RIDER_MONITOR'
 ]);
 
 export const requirePrivate = authorize([
-  UserRole.PRIVATE,
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.DEVELOPER
+  'PRIVATE',
+  'SYSTEM_OPERATOR',
+  'DEVELOPER'
 ]);
 
 export const requireAuthenticated = authorize([
-  UserRole.PRIVATE,
-  UserRole.RIDER,
-  UserRole.BUSINESS,
-  UserRole.DEVELOPER,
-  UserRole.SYSTEM_OPERATOR,
-  UserRole.CUSTOMER_CARE,
-  UserRole.REGIONAL_OPERATOR,
-  UserRole.LOCAL_RIDER_MONITOR
+  'PRIVATE',
+  'RIDER',
+  'BUSINESS',
+  'DEVELOPER',
+  'SYSTEM_OPERATOR',
+  'CUSTOMER_CARE',
+  'REGIONAL_OPERATOR',
+  'LOCAL_RIDER_MONITOR'
 ]);
 
 // Helper to get user from request

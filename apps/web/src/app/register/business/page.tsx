@@ -60,8 +60,24 @@ export default function BusinessRegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+
+  const uploadFile = async (field: string, file: File) => {
+    setUploading(field)
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/upload`, { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setForm({ ...form, [field]: data.url })
+    } catch (err: any) {
+      setError(err.message)
+    }
+    setUploading(null)
+  }
 
   const [form, setForm] = useState({
     // Step 1 - Business
@@ -235,8 +251,10 @@ export default function BusinessRegisterPage() {
             <Input value={form.bankName} onChange={e => update('bankName', e.target.value)} placeholder="Intesa Sanpaolo, Unicredit, ecc." />
           </div>
           <div>
-            <Label>Documento di Prova (URL) *</Label>
-            <Input value={form.bankProofDoc} onChange={e => update('bankProofDoc', e.target.value)} placeholder="URL della scansione/intestazione conto" />
+            <Label>Documento di Prova *</Label>
+            <Input type="file" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && uploadFile('bankProofDoc', e.target.files[0])} />
+            {uploading === 'bankProofDoc' && <p className="text-xs text-muted-foreground mt-1">Caricamento...</p>}
+            {form.bankProofDoc && <p className="text-xs text-green-600 mt-1">✓ Caricato</p>}
             <p className="text-xs text-muted-foreground mt-1">Carica una scansione o foto dell'intestazione del conto (estratto conto, modulo IBAN)</p>
           </div>
         </div>

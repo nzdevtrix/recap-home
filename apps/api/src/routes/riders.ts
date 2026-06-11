@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '@recap/database';
-import { UserRole, RiderApprovalStatus } from '@prisma/client';
+
 import { getCurrentUser, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.get('/available', async (req, res) => {
     
     const where: any = {
       isAvailable: true,
-      profile: { approvalStatus: RiderApprovalStatus.APPROVED },
+      profile: { approvalStatus: 'APPROVED' },
     };
     
     if (regionId) {
@@ -64,7 +64,7 @@ router.get('/', requireAdmin, async (req, res) => {
     }
     
     if (approvalStatus) {
-      where.profile = { approvalStatus: approvalStatus as RiderApprovalStatus };
+      where.profile = { approvalStatus: approvalStatus as string };
     }
     
     if (isAvailable !== undefined) {
@@ -168,11 +168,11 @@ router.get('/:id', async (req, res) => {
     
     // Check permission (unless admin)
     const isAdmin = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ].includes(user.role);
     
     if (!isAdmin && user.id !== rider.userId) {
@@ -240,7 +240,7 @@ router.post('/', requireAdmin, async (req, res) => {
         userId,
         regionId: regionId || defaultRegion?.id,
         isAvailable: isAvailable || false,
-        approvalStatus: RiderApprovalStatus.PENDING,
+        approvalStatus: 'PENDING',
         backgroundCheckStatus: 'PENDING',
       },
     });
@@ -270,11 +270,11 @@ router.patch('/:id', async (req, res) => {
     
     // Check permission
     const isAdmin = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ].includes(user.role);
     
     if (!isAdmin && user.id !== rider.userId) {
@@ -442,7 +442,7 @@ router.post('/:id/approve', requireAdmin, async (req, res) => {
     const updatedProfile = await prisma.riderProfile.update({
       where: { userId: rider.userId },
       data: {
-        approvalStatus: RiderApprovalStatus.APPROVED,
+        approvalStatus: 'APPROVED',
         approvedById: admin.id,
         approvedAt: new Date(),
         backgroundCheckNotes: notes,
@@ -501,7 +501,7 @@ router.post('/:id/reject', requireAdmin, async (req, res) => {
     await prisma.riderProfile.update({
       where: { userId: rider.userId },
       data: {
-        approvalStatus: RiderApprovalStatus.REJECTED,
+        approvalStatus: 'REJECTED',
         approvedById: admin.id,
         approvedAt: new Date(),
         rejectionReason: reason,
@@ -552,11 +552,11 @@ router.get('/:id/profile', async (req, res) => {
     
     // Check permission
     const isAdmin = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ].includes(user.role);
     
     if (!isAdmin && user.id !== rider.userId) {
@@ -608,11 +608,11 @@ router.patch('/:id/profile', async (req, res) => {
     
     // Check permission
     const isAdmin = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ].includes(user.role);
     
     if (!isAdmin && user.id !== rider.userId) {
@@ -659,19 +659,19 @@ router.get('/statistics', async (req, res) => {
     const pendingRiders = await prisma.riderProfile.count({ 
       where: { 
         ...(regionId ? { regionId: regionId as string } : {}),
-        approvalStatus: RiderApprovalStatus.PENDING 
+        approvalStatus: 'PENDING' 
       } 
     });
     const approvedRiders = await prisma.riderProfile.count({ 
       where: { 
         ...(regionId ? { regionId: regionId as string } : {}),
-        approvalStatus: RiderApprovalStatus.APPROVED 
+        approvalStatus: 'APPROVED' 
       } 
     });
     const rejectedRiders = await prisma.riderProfile.count({ 
       where: { 
         ...(regionId ? { regionId: regionId as string } : {}),
-        approvalStatus: RiderApprovalStatus.REJECTED 
+        approvalStatus: 'REJECTED' 
       } 
     });
     

@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '@recap/database';
-import { UserRole, RiderApprovalStatus, BusinessStatus } from '@prisma/client';
+
 import { getCurrentUser, requireAdmin, authorize } from '../middleware/auth';
 import { hashPassword } from '../utils/auth';
 
@@ -14,7 +14,7 @@ router.get('/', requireAdmin, async (req, res) => {
     const where: any = {};
     
     if (role) {
-      where.role = role as UserRole;
+      where.role = role as string;
     }
     
     if (search) {
@@ -109,11 +109,11 @@ router.get('/:id', async (req, res) => {
     // Check permission (unless admin)
     const isAdmin = requireAdmin.length > 0; // Check if user is admin
     const adminRoles = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ];
     
     if (!adminRoles.includes(user.role) && user.id !== targetUser.id) {
@@ -155,7 +155,7 @@ router.post('/', requireAdmin, async (req, res) => {
         email,
         password: hashedPassword,
         name,
-        role: role as UserRole,
+        role: role as string,
         phone,
         emailVerified: true, // Direct add users are verified
       },
@@ -166,14 +166,14 @@ router.post('/', requireAdmin, async (req, res) => {
     });
     
     // If creating a RIDER, also create rider profile and rider record
-    if (role === UserRole.RIDER) {
+    if (role === 'RIDER') {
       const defaultRegion = await prisma.region.findFirst();
       
       await prisma.riderProfile.create({
         data: {
           userId: user.id,
           regionId: regionId || defaultRegion?.id,
-          approvalStatus: RiderApprovalStatus.PENDING,
+          approvalStatus: 'PENDING',
           backgroundCheckStatus: 'PENDING',
           isAvailable: false,
         },
@@ -189,7 +189,7 @@ router.post('/', requireAdmin, async (req, res) => {
     }
     
     // If creating a BUSINESS, also create business profile and business record
-    if (role === UserRole.BUSINESS) {
+    if (role === 'BUSINESS') {
       const defaultRegion = await prisma.region.findFirst();
       
       await prisma.businessProfile.create({
@@ -198,7 +198,7 @@ router.post('/', requireAdmin, async (req, res) => {
           name: name,
           address: '',
           regionId: regionId || defaultRegion?.id,
-          status: BusinessStatus.ACTIVE, // Auto-approved for direct add
+          status: 'ACTIVE', // Auto-approved for direct add
           approvedAt: new Date(),
         },
       });
@@ -238,10 +238,10 @@ router.patch('/:id', async (req, res) => {
     
     // Check permission
     const adminRoles = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
     ];
     
     if (user.id !== id && !adminRoles.includes(user.role)) {
@@ -300,12 +300,12 @@ router.patch('/:id/role', requireAdmin, async (req, res) => {
       // Check if there are other admins
       const otherAdmins = await prisma.user.count({
         where: {
-          role: { in: [UserRole.SYSTEM_OPERATOR, UserRole.DEVELOPER] },
+          role: { in: ['SYSTEM_OPERATOR', 'DEVELOPER'] },
           id: { not: id },
         },
       });
       
-      if (otherAdmins === 0 && ![UserRole.SYSTEM_OPERATOR, UserRole.DEVELOPER].includes(role as UserRole)) {
+      if (otherAdmins === 0 && !['SYSTEM_OPERATOR', 'DEVELOPER'].includes(role as string)) {
         return res.status(400).json({
           error: 'Cannot change your own role - you are the only administrator'
         });
@@ -314,7 +314,7 @@ router.patch('/:id/role', requireAdmin, async (req, res) => {
     
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: { role: role as UserRole },
+      data: { role: role as string },
       include: {
         rider: true,
         business: true,
@@ -358,7 +358,7 @@ router.patch('/:id/deactivate', requireAdmin, async (req, res) => {
     });
     
     // Deactivate associated rider/business
-    if (updatedUser.role === UserRole.RIDER) {
+    if (updatedUser.role === 'RIDER') {
       await prisma.rider.updateMany({
         where: { userId: id },
         data: { isAvailable: false },
@@ -370,7 +370,7 @@ router.patch('/:id/deactivate', requireAdmin, async (req, res) => {
       });
     }
     
-    if (updatedUser.role === UserRole.BUSINESS) {
+    if (updatedUser.role === 'BUSINESS') {
       await prisma.business.updateMany({
         where: { userId: id },
         data: { isActive: false },
@@ -378,7 +378,7 @@ router.patch('/:id/deactivate', requireAdmin, async (req, res) => {
       
       await prisma.businessProfile.updateMany({
         where: { userId: id },
-        data: { status: BusinessStatus.DEACTIVATED },
+        data: { status: 'DEACTIVATED' },
       });
     }
     
@@ -413,7 +413,7 @@ router.patch('/:id/activate', requireAdmin, async (req, res) => {
     });
     
     // Activate associated rider/business
-    if (updatedUser.role === UserRole.RIDER) {
+    if (updatedUser.role === 'RIDER') {
       await prisma.rider.updateMany({
         where: { userId: id },
         data: { isAvailable: false }, // Don't auto-activate, let them set availability
@@ -425,7 +425,7 @@ router.patch('/:id/activate', requireAdmin, async (req, res) => {
       });
     }
     
-    if (updatedUser.role === UserRole.BUSINESS) {
+    if (updatedUser.role === 'BUSINESS') {
       await prisma.business.updateMany({
         where: { userId: id },
         data: { isActive: true },
@@ -433,7 +433,7 @@ router.patch('/:id/activate', requireAdmin, async (req, res) => {
       
       await prisma.businessProfile.updateMany({
         where: { userId: id },
-        data: { status: BusinessStatus.ACTIVE },
+        data: { status: 'ACTIVE' },
       });
     }
     

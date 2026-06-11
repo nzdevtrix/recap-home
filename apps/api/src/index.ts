@@ -9,6 +9,8 @@ import registerRoutes from './routes/register';
 import orderRoutes from './routes/orders';
 import riderRoutes from './routes/riders';
 import chatbotRoutes from './routes/chatbot';
+import uploadRoutes from './routes/upload';
+import path from 'path';
 import { authenticate, getCurrentUser } from './middleware/auth';
 
 dotenv.config();
@@ -29,6 +31,8 @@ app.use('/register', registerRoutes);
 app.use('/orders', authenticate, orderRoutes);
 app.use('/riders', authenticate, riderRoutes);
 app.use('/chatbot', authenticate, chatbotRoutes);
+app.use('/upload', uploadRoutes);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Health check
 app.get('/health', (req, res) => {

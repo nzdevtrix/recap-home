@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '@recap/database';
-import { OrderStatus, UserRole } from '@prisma/client';
+
 import { getCurrentUser } from '../middleware/auth';
 import { io } from '../index';
 
@@ -57,7 +57,7 @@ router.post('/', async (req, res) => {
         deliveryAddress,
         deliveryNotes,
         paymentMethod,
-        status: OrderStatus.PENDING,
+        status: 'PENDING',
       },
       include: {
         user: {
@@ -106,21 +106,21 @@ router.get('/', async (req, res) => {
     
     // Filter by status if provided
     if (status) {
-      where.status = status as OrderStatus;
+      where.status = status as string;
     }
     
     // For business users, filter by their business
-    if (user.role === UserRole.BUSINESS && myOrders !== 'false') {
+    if (user.role === 'BUSINESS' && myOrders !== 'false') {
       where.businessId = user.business?.id;
     }
     
     // For rider users, filter by their assigned orders
-    if (user.role === UserRole.RIDER && myOrders !== 'false') {
+    if (user.role === 'RIDER' && myOrders !== 'false') {
       where.riderId = user.rider?.id;
     }
     
     // For private users, filter by their orders (unless admin)
-    if (user.role === UserRole.PRIVATE && myOrders !== 'false') {
+    if (user.role === 'PRIVATE' && myOrders !== 'false') {
       where.userId = user.id;
     }
     
@@ -188,10 +188,10 @@ router.get('/:id', async (req, res) => {
     
     // Check if user has permission to view this order
     const canView = 
-      user.role === UserRole.SYSTEM_OPERATOR ||
-      user.role === UserRole.DEVELOPER ||
-      user.role === UserRole.CUSTOMER_CARE ||
-      user.role === UserRole.REGIONAL_OPERATOR ||
+      user.role === 'SYSTEM_OPERATOR' ||
+      user.role === 'DEVELOPER' ||
+      user.role === 'CUSTOMER_CARE' ||
+      user.role === 'REGIONAL_OPERATOR' ||
       user.id === order.userId ||
       (user.business && user.business.id === order.businessId) ||
       (user.rider && user.rider.id === order.riderId);
@@ -228,17 +228,17 @@ router.patch('/:id/status', async (req, res) => {
     }
     
     // Validate status transitions
-    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-      [OrderStatus.PENDING]: [OrderStatus.ASSIGNED, OrderStatus.CANCELLED],
-      [OrderStatus.ASSIGNED]: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
-      [OrderStatus.PICKED_UP]: [OrderStatus.IN_TRANSIT, OrderStatus.CANCELLED],
-      [OrderStatus.IN_TRANSIT]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
-      [OrderStatus.DELIVERED]: [],
-      [OrderStatus.CANCELLED]: [],
+    const validTransitions: Record<string, string[]> = {
+      ['PENDING']: ['ASSIGNED', 'CANCELLED'],
+      ['ASSIGNED']: ['PICKED_UP', 'CANCELLED'],
+      ['PICKED_UP']: ['IN_TRANSIT', 'CANCELLED'],
+      ['IN_TRANSIT']: ['DELIVERED', 'CANCELLED'],
+      ['DELIVERED']: [],
+      ['CANCELLED']: [],
     };
     
-    const currentStatus = order.status as OrderStatus;
-    const newStatus = status as OrderStatus;
+    const currentStatus = order.status as string;
+    const newStatus = status as string;
     
     if (!validTransitions[currentStatus].includes(newStatus)) {
       return res.status(400).json({
@@ -249,10 +249,10 @@ router.patch('/:id/status', async (req, res) => {
     
     // Check permissions
     const canUpdate = 
-      user.role === UserRole.SYSTEM_OPERATOR ||
-      user.role === UserRole.DEVELOPER ||
-      user.role === UserRole.CUSTOMER_CARE ||
-      user.role === UserRole.REGIONAL_OPERATOR ||
+      user.role === 'SYSTEM_OPERATOR' ||
+      user.role === 'DEVELOPER' ||
+      user.role === 'CUSTOMER_CARE' ||
+      user.role === 'REGIONAL_OPERATOR' ||
       (user.business && user.business.id === order.businessId) ||
       (user.rider && user.rider.id === order.riderId) ||
       user.id === order.userId;
@@ -262,16 +262,16 @@ router.patch('/:id/status', async (req, res) => {
     }
     
     // Additional checks for specific transitions
-    if (newStatus === OrderStatus.ASSIGNED) {
-      if (user.role !== UserRole.SYSTEM_OPERATOR && 
-          user.role !== UserRole.DEVELOPER &&
-          user.role !== UserRole.CUSTOMER_CARE &&
-          user.role !== UserRole.REGIONAL_OPERATOR) {
+    if (newStatus === 'ASSIGNED') {
+      if (user.role !== 'SYSTEM_OPERATOR' && 
+          user.role !== 'DEVELOPER' &&
+          user.role !== 'CUSTOMER_CARE' &&
+          user.role !== 'REGIONAL_OPERATOR') {
         return res.status(403).json({ error: 'Only admin can assign orders to riders' });
       }
     }
     
-    if (newStatus === OrderStatus.PICKED_UP || newStatus === OrderStatus.DELIVERED) {
+    if (newStatus === 'PICKED_UP' || newStatus === 'DELIVERED') {
       if (user.rider?.id !== order.riderId) {
         return res.status(403).json({ error: 'Only the assigned rider can update this order status' });
       }
@@ -283,8 +283,8 @@ router.patch('/:id/status', async (req, res) => {
       data: {
         status: newStatus,
         updatedAt: new Date(),
-        ...(newStatus === OrderStatus.PICKED_UP && { pickedUpAt: new Date() }),
-        ...(newStatus === OrderStatus.DELIVERED && { deliveredAt: new Date() }),
+        ...(newStatus === 'PICKED_UP' && { pickedUpAt: new Date() }),
+        ...(newStatus === 'DELIVERED' && { deliveredAt: new Date() }),
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -329,11 +329,11 @@ router.post('/:id/assign-rider', async (req, res) => {
     
     // Check if user is admin
     const adminRoles = [
-      UserRole.SYSTEM_OPERATOR,
-      UserRole.DEVELOPER,
-      UserRole.CUSTOMER_CARE,
-      UserRole.REGIONAL_OPERATOR,
-      UserRole.LOCAL_RIDER_MONITOR
+      'SYSTEM_OPERATOR',
+      'DEVELOPER',
+      'CUSTOMER_CARE',
+      'REGIONAL_OPERATOR',
+      'LOCAL_RIDER_MONITOR'
     ];
     
     if (!adminRoles.includes(user.role)) {
@@ -368,7 +368,7 @@ router.post('/:id/assign-rider', async (req, res) => {
       where: { id },
       data: {
         riderId,
-        status: OrderStatus.ASSIGNED,
+        status: 'ASSIGNED',
         updatedAt: new Date(),
       },
       include: {
@@ -421,7 +421,7 @@ router.get('/user/:userId', async (req, res) => {
     const user = getCurrentUser(req);
     
     // Check permission
-    if (user.id !== userId && user.role !== UserRole.SYSTEM_OPERATOR) {
+    if (user.id !== userId && user.role !== 'SYSTEM_OPERATOR') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -456,7 +456,7 @@ router.get('/business/:businessId', async (req, res) => {
       return res.status(404).json({ error: 'Business not found' });
     }
     
-    if (user.business?.id !== businessId && user.role !== UserRole.SYSTEM_OPERATOR) {
+    if (user.business?.id !== businessId && user.role !== 'SYSTEM_OPERATOR') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -491,7 +491,7 @@ router.get('/rider/:riderId', async (req, res) => {
       return res.status(404).json({ error: 'Rider not found' });
     }
     
-    if (user.rider?.id !== riderId && user.role !== UserRole.SYSTEM_OPERATOR) {
+    if (user.rider?.id !== riderId && user.role !== 'SYSTEM_OPERATOR') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -530,7 +530,7 @@ router.post('/:id/rate', async (req, res) => {
       return res.status(403).json({ error: 'Only the order owner can rate' });
     }
     
-    if (order.status !== OrderStatus.DELIVERED) {
+    if (order.status !== 'DELIVERED') {
       return res.status(400).json({ error: 'Can only rate delivered orders' });
     }
     

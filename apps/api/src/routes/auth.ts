@@ -10,7 +10,7 @@ import {
   decodeGoogleIdToken,
   getGoogleAuthUrl,
 } from '../utils/auth';
-import { UserRole, RiderApprovalStatus, BusinessStatus } from '@prisma/client';
+
 import { prisma } from '@recap/database';
 
 const router = express.Router();
@@ -73,7 +73,7 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    const userRole = role as UserRole || UserRole.PRIVATE;
+    const userRole = role as string || 'PRIVATE';
     
     const { user, accessToken, refreshToken } = await createUser(
       email,
@@ -82,12 +82,12 @@ router.post('/register', async (req, res) => {
       userRole
     );
     
-    if (userRole === UserRole.RIDER) {
+    if (userRole === 'RIDER') {
       await prisma.riderProfile.create({
         data: {
           userId: user.id,
           regionId: regionId || (await prisma.region.findFirst())?.id,
-          approvalStatus: RiderApprovalStatus.PENDING,
+          approvalStatus: 'PENDING',
           backgroundCheckStatus: 'PENDING',
         },
       });
@@ -100,14 +100,14 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    if (userRole === UserRole.BUSINESS) {
+    if (userRole === 'BUSINESS') {
       await prisma.businessProfile.create({
         data: {
           userId: user.id,
           name: name,
           address: '',
           regionId: regionId || (await prisma.region.findFirst())?.id,
-          status: BusinessStatus.ACTIVE,
+          status: 'ACTIVE',
           approvedAt: new Date(),
         },
       });
@@ -126,7 +126,7 @@ router.post('/register', async (req, res) => {
       user, 
       accessToken, 
       refreshToken,
-      message: userRole === UserRole.RIDER 
+      message: userRole === 'RIDER' 
         ? 'Registration successful! Your rider application is pending admin approval.'
         : 'Registration successful!'
     });
@@ -203,17 +203,17 @@ router.get('/me', async (req, res) => {
     
     let profileData = {};
     
-    if (user.role === UserRole.RIDER && user.riderProfile) {
+    if (user.role === 'RIDER' && user.riderProfile) {
       profileData = {
         riderProfile: user.riderProfile,
-        isApproved: user.riderProfile.approvalStatus === RiderApprovalStatus.APPROVED,
+        isApproved: user.riderProfile.approvalStatus === 'APPROVED',
       };
     }
     
-    if (user.role === UserRole.BUSINESS && user.businessProfile) {
+    if (user.role === 'BUSINESS' && user.businessProfile) {
       profileData = {
         businessProfile: user.businessProfile,
-        isActive: user.businessProfile.status === BusinessStatus.ACTIVE,
+        isActive: user.businessProfile.status === 'ACTIVE',
       };
     }
     
