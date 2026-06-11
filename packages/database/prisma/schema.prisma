@@ -1,101 +1,10 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {
   provider = "prisma-client-js"
-}
-
-// ==================== ENUMS ====================
-
-enum UserRole {
-  PRIVATE
-  RIDER
-  BUSINESS
-  DEVELOPER
-  SYSTEM_OPERATOR
-  CUSTOMER_CARE
-  REGIONAL_OPERATOR
-  LOCAL_RIDER_MONITOR
-}
-
-enum OrderStatus {
-  PENDING
-  ASSIGNED
-  PICKED_UP
-  IN_TRANSIT
-  DELIVERED
-  CANCELLED
-}
-
-enum RiderApprovalStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum BusinessStatus {
-  PENDING_BANKING
-  ACTIVE
-  SUSPENDED
-  DEACTIVATED
-}
-
-enum BusinessLegalType {
-  INDIVIDUALE
-  SNC
-  SAS
-  SRL
-  SRLS
-  SPA
-  SAPA
-  COOPERATIVA
-  CONSORZIO
-  ONLUS
-  FREELANCE
-  ALTRO
-}
-
-enum DocumentType {
-  IDENTITY_FRONT
-  IDENTITY_BACK
-  PERMESSO_SOGGIORNO
-  TESSERA_SANITARIA
-  BANK_PROOF
-}
-
-enum BusinessCategory {
-  RISTORAZIONE
-  FAST_FOOD
-  BAR
-  GELATERIA
-  PASTICCERIA
-  PANIFICIO
-  RISTORANTE
-  PIZZERIA
-  RISTORANTE_ETNICO
-  AGRITURISMO
-  SUPERMERCATO
-  IPERMERCATO
-  DISCOUNT
-  MINIMERCATO
-  NEGOZIO_ALIMENTARI
-  MACELLERIA
-  PESCHERIA
-  ORTOFRUTTA
-  FORMAGGIO
-  SALUMERIA
-  ENOTECA
-  OLIO
-  GASTRONOMIA
-  RISTORAZIONE_COLLETTIVA
-  CATERING
-  COMMERCIO_ELETTRONICO
-  PRODOTTI_BIOLOGICI
-  ALIMENTI_ANIMALI
-  BEVANDE
-  ALTRO
 }
 
 // ==================== MODELS ====================
@@ -108,7 +17,7 @@ model User {
   name          String?
   firstName     String?
   lastName      String?
-  role          UserRole  @default(PRIVATE)
+  role          String    @default("PRIVATE")
 
   googleId      String?   @unique
   googleImage   String?
@@ -139,7 +48,7 @@ model Document {
   id          String       @id @default(uuid())
   userId      String
   user        User         @relation(fields: [userId], references: [id])
-  type        DocumentType
+  type        String
   url         String
   verified    Boolean      @default(false)
   verifiedAt  DateTime?
@@ -182,7 +91,7 @@ model RiderProfile {
   vatId             String?
   hasPermessoDiSoggiorno Boolean    @default(false)
 
-  approvalStatus    RiderApprovalStatus @default(PENDING)
+  approvalStatus    String @default("PENDING")
   approvedById      String?
   approvedAt        DateTime?
   rejectionReason   String?
@@ -215,7 +124,7 @@ model BusinessProfile {
   user        User             @relation(fields: [userId], references: [id])
 
   legalName         String
-  legalType         BusinessLegalType
+  legalType         String
   ownerFullName     String
   ownerDob          DateTime
   ownerPlaceOfBirth String
@@ -223,14 +132,14 @@ model BusinessProfile {
   ownerResidence    String
   pecAddress        String?
   vatId             String
-  businessCategory  BusinessCategory
+  businessCategory  String
   businessAddress   String
   city              String?
   postalCode        String?
   phone             String?
   website           String?
 
-  status            BusinessStatus   @default(PENDING_BANKING)
+  status            String   @default("PENDING_BANKING")
   approvedAt        DateTime?
   isVerified        Boolean          @default(false)
   verificationDocs  String?
@@ -259,11 +168,11 @@ model Product {
   category    String
   subCategory String?
   imageUrl    String?
-  images      Json?
+  images      String?
   isAvailable Boolean  @default(true)
   stock       Int?     @default(0)
-  options     Json?
-  tags        Json?
+  options     String?
+  tags        String?
   rating      Float    @default(0)
   totalRatings Int     @default(0)
   createdAt   DateTime @default(now())
@@ -292,11 +201,11 @@ model Order {
   userId          String
   businessId      String?
   riderId         String?
-  items           Json
+  items           String
   total           Float
   deliveryFee     Float       @default(0)
   grandTotal      Float
-  status          OrderStatus @default(PENDING)
+  status          String      @default("PENDING")
   pickupAddress   String
   deliveryAddress String
   deliveryNotes   String?
@@ -323,8 +232,8 @@ model Region {
   id         String   @id @default(uuid())
   name       String   @unique
   code       String   @unique
-  boundaries Json
-  center     Json?
+  boundaries String
+  center     String?
   isActive   Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -350,7 +259,7 @@ model Notification {
   title     String
   message   String
   type      String
-  data      Json?
+  data      String?
   isRead    Boolean  @default(false)
   isSent    Boolean  @default(false)
   createdAt DateTime @default(now())
