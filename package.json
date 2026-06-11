@@ -19,6 +19,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.11"
   }
 }
