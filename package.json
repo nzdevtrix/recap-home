@@ -9,6 +9,9 @@
     "test": "turbo test"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/jsonwebtoken": "^9.0.10",
     "turbo": "^2.0.0"
   },
   "workspaces": [
