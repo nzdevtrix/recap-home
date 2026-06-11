@@ -1,0 +1,113 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  PRIVATE
+  RIDER
+  BUSINESS
+  DEVELOPER
+  SYSTEM_OPERATOR
+  CUSTOMER_CARE
+  REGIONAL_OPERATOR
+  LOCAL_RIDER_MONITOR
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rider    Rider?
+  business Business?
+  orders   Order[]
+}
+
+model Rider {
+  id          String      @id @default(uuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id])
+  isAvailable Boolean     @default(false)
+  currentShiftId String?  @unique
+  currentShift RiderShift? @relation("CurrentShift", fields: [currentShiftId], references: [id])
+  regionId    String
+  region      Region      @relation(fields: [regionId], references: [id])
+  shifts      RiderShift[] @relation("RiderShifts")
+  orders      Order[]
+}
+
+model Business {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  name        String
+  description String?
+  address     String
+  regionId    String
+  region      Region    @relation(fields: [regionId], references: [id])
+  products    Product[]
+  orders      Order[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  name        String
+  description String?
+  price       Float
+  category    String
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  businessId      String?
+  business        Business?   @relation(fields: [businessId], references: [id])
+  riderId         String?
+  rider           Rider?      @relation(fields: [riderId], references: [id])
+  items           Json
+  total           Float
+  status          OrderStatus @default(PENDING)
+  pickupAddress   String
+  deliveryAddress String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Region {
+  id         String   @id @default(uuid())
+  name       String
+  boundaries Json
+  riders     Rider[]
+  businesses Business[]
+}
+
+model RiderShift {
+  id        String   @id @default(uuid())
+  riderId   String
+  rider     Rider    @relation("RiderShifts", fields: [riderId], references: [id])
+  riderAsCurrent Rider? @relation("CurrentShift")
+  startTime DateTime
+  endTime   DateTime
+  isActive  Boolean  @default(true)
+}
