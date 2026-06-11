@@ -13,7 +13,6 @@ export default function RiderRegisterPage() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   const [form, setForm] = useState({
     // Step 1 - Personal details
@@ -102,36 +101,13 @@ export default function RiderRegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setSuccess(true)
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
     }
     setLoading(false)
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>✅ Candidatura Inviata!</CardTitle>
-            <CardDescription className="text-base mt-2">
-              La tua candidatura come rider è stata ricevuta con successo.
-              Riceverai una notifica via email sullo stato della tua richiesta.
-              Puoi verificare lo stato della candidatura inserendo la tua email.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button onClick={() => router.push('/register/rider/status')} className="w-full">
-              Verifica Stato Candidatura
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/')} className="w-full">
-              Torna alla Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   const renderStep = () => {

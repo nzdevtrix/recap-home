@@ -42,7 +42,9 @@ export default function PrivateRegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      router.push('/auth/login?registered=true')
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
     }

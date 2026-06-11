@@ -62,7 +62,6 @@ export default function BusinessRegisterPage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   const uploadFile = async (field: string, file: File) => {
     setUploading(field)
@@ -128,31 +127,13 @@ export default function BusinessRegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setSuccess(true)
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
     }
     setLoading(false)
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>✅ Registrazione Inviata!</CardTitle>
-            <CardDescription className="text-base mt-2">
-              La tua richiesta di registrazione come attività commerciale è stata ricevuta.
-              I tuoi dati bancari sono in fase di verifica.
-              Riceverai una notifica appena sarai approvato.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push('/auth/login')}>Vai al Login</Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   const renderStep = () => {

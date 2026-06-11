@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '@recap/database';
-import { hashPassword } from '../utils/auth';
+import { hashPassword, generateToken, generateRefreshToken } from '../utils/auth';
 import { generateOtp, storeOtp, verifyOtp, sendOtpEmail } from '../utils/email';
 
 const router = express.Router();
@@ -108,10 +108,15 @@ router.post('/business', async (req, res) => {
       }
     });
 
+    const accessToken = generateToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+
     res.status(201).json({
-      message: 'Business registration submitted successfully! Your banking details are pending verification. You will be notified once approved.',
+      message: 'Business registration submitted successfully!',
       userId: user.id,
-      status: 'PENDING_BANKING'
+      status: 'PENDING_BANKING',
+      accessToken,
+      refreshToken
     });
   } catch (error: any) {
     console.error('Business registration error:', error);
@@ -163,6 +168,9 @@ router.post('/private', async (req, res) => {
       }
     });
 
+    const accessToken = generateToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+
     res.status(201).json({
       message: 'Registration successful!',
       user: {
@@ -172,7 +180,9 @@ router.post('/private', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role
-      }
+      },
+      accessToken,
+      refreshToken
     });
   } catch (error: any) {
     console.error('Private registration error:', error);
@@ -279,9 +289,14 @@ router.post('/rider', async (req, res) => {
       });
     }
 
+    const accessToken = generateToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email, role: user.role, name: user.name });
+
     res.status(201).json({
-      message: 'Rider application submitted successfully! You will receive an email notification once your application is reviewed.',
-      userId: user.id
+      message: 'Rider application submitted successfully!',
+      userId: user.id,
+      accessToken,
+      refreshToken
     });
   } catch (error: any) {
     console.error('Rider registration error:', error);
